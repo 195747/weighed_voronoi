@@ -1,3 +1,56 @@
+var mymap = L.map('mapid').setView([51.75, 19.45], 16);
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery Š <a href="http://mapbox.com">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox.streets',
+        accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'
+    }).addTo(mymap);
+
+
+var svg_layer = d3.select(mymap.getPanes().overlayPane).append("svg"),
+zoom_hide = svg_layer.append("g").attr("class", "leaflet-zoom-hide");
+
+d3.json("map.json" , function (error, collection) {
+    if(error) throw error;
+
+    var transform = d3.geo.transform({point: projectPoint}),
+        path = d3.geo.path().projection(transform);
+
+    var feature = zoom_hide.selectAll("path")
+        .data(collection.features)
+        .enter().append("path");
+
+    mymap.on("viewreset", reset);
+    reset();
+
+    //reposition SVG by pokryc featury
+    function reset() {
+        var bounds = path.bounds(collection),
+            topLeft = bounds[0],
+            bottomRight = bounds[1];
+
+        svg_layer.attr("width", bottomRight[0] - topLeft[0] + 50)
+            .attr("height", bottomRight[1] - topLeft[1] + 50)
+            .style("left", topLeft[0] + "px")
+            .style("top", topLeft[1] + "px");
+
+        zoom_hide.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+
+        feature.attr("d", path);
+    }
+
+    //leaflet for d3 geom transformation.
+    function projectPoint(x, y) {
+        var point = mymap.latLngToLayerPoint(new L.LatLng(y, x));
+        this.stream.point(point.x, point.y);
+    }
+
+});
+
+
+
+
+
 var width = 960,
     height = 500,
     padding = 2,
@@ -7,10 +60,10 @@ var width = 960,
 
 var dx=10, dy=10;
 var nodes = [
-  {id:1, x: 100, y:100, radius: 10},
-  {id:2, x: 100+dx, y:100, radius: 10},
-  {id:3, x: 100+dx, y:100+dy, radius: 10},
-  {id:4, x: 100, y:100+dy, radius: 10}
+  {id:1, x: 100, y:100, radius: 1},
+  {id:2, x: 100+dx, y:100, radius: 1},
+  {id:3, x: 100+dx, y:100+dy, radius: 1},
+  {id:4, x: 100, y:100+dy, radius: 1}
 ];
 nodes.forEach(function(d) {
   d.cx=d.x; 
@@ -26,14 +79,24 @@ var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
 
-var cells = svg.selectAll('.cell')
-  .data(voronoi(nodes));
+var cells = svg.append("g").attr("class", "cells")
+    .selectAll('.cell')
+    .data(voronoi(nodes));
 
 cells.enter().append('path')
-  .attr('class', 'cell');
+    .attr('class', 'cell');
 
-var circle = svg.selectAll("circle")
+var circle = svg.append("g").attr("class", "ref_circles")
+    .selectAll("circle")
     .data(nodes);
+
+var sites = svg.append("g").attr("class", "sites")
+    .selectAll("circle")
+    .data(nodes)
+    .enter()
+    .append("circle")
+    .attr("r", 2.5)
+    .call(drawSite);
 
 var enter_circle = circle.enter().append("circle")
   	.attr('class', 'node');
@@ -41,7 +104,7 @@ var enter_circle = circle.enter().append("circle")
 enter_circle
 	.attr("r", function(d) { return d.radius; })
 	.attr("cx", function(d) { return d.cx; })
-  .attr("cy", function(d) { return d.cy; });
+    .attr("cy", function(d) { return d.cy; });
 
 var force = d3.layout.force()
     .nodes(nodes)
@@ -107,4 +170,10 @@ function gravity(alpha) {
 		d.y += (d.cy - d.y) * alpha;
 		d.x += (d.cx - d.x) * alpha;
 	};
+}
+
+function drawSite(circle){
+    circle
+        .attr("cx", function (d){ return d.cx })
+        .attr("cy", function(d){ return d.cy });
 }
