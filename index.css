@@ -4,6 +4,10 @@
 	border: 1px solid red;
 }
 
+svg{
+    position: relative;
+}
+
 .cell {
 	fill: #C9DEEC;
 	stroke: white;

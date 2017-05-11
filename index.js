@@ -1,14 +1,20 @@
-var mymap = L.map('mapid').setView([51.75, 19.45], 16);
-    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery Š <a href="http://mapbox.com">Mapbox</a>',
-        maxZoom: 18,
-        id: 'mapbox.streets',
-        accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'
-    }).addTo(mymap);
+var map = L.map('mapid').setView([51.753, 19.453], 15);
+//     L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+//         attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery Š <a href="http://mapbox.com">Mapbox</a>',
+//         maxZoom: 18,
+//         id: 'mapbox.streets',
+//         accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'
+//     }).addTo(map);
 
+L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
 
-var svg_layer = d3.select(mymap.getPanes().overlayPane).append("svg"),
-zoom_hide = svg_layer.append("g").attr("class", "leaflet-zoom-hide");
+//[51.753, 19.453]
+//[-41.29, 174.75]
+
+var svg_layer = d3.select(map.getPanes().overlayPane).append("svg");
+var zoom_hide = svg_layer.append("g").attr("class", "leaflet-zoom-hide");
 
 d3.json("map.json" , function (error, collection) {
     if(error) throw error;
@@ -20,28 +26,33 @@ d3.json("map.json" , function (error, collection) {
         .data(collection.features)
         .enter().append("path");
 
-    mymap.on("viewreset", reset);
+    map.on("viewreset", reset);
     reset();
 
     //reposition SVG by pokryc featury
     function reset() {
         var bounds = path.bounds(collection),
-            topLeft = bounds[0],
-            bottomRight = bounds[1];
+            leftTop = bounds[0],
+            rightBottom = bounds[1];
 
-        svg_layer.attr("width", bottomRight[0] - topLeft[0] + 50)
-            .attr("height", bottomRight[1] - topLeft[1] + 50)
-            .style("left", topLeft[0] + "px")
-            .style("top", topLeft[1] + "px");
+        //alert(bounds);
 
-        zoom_hide.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+        svg_layer.attr("width", rightBottom[0] - leftTop[0])
+            .attr("height", rightBottom[1] - leftTop[1])
+            .style("left", leftTop[0] + "px")
+            .style("top", leftTop[1] + "px")
+            .style("border", "1px solid blue");
 
-        feature.attr("d", path);
+        zoom_hide.attr("transform", "translate(" + -leftTop[0] + "," + -leftTop[1] + ")");
+
+        feature.attr("d", path)
+            .style("fill-opacity", 0.7)
+            .attr("fill", "blue");
     }
 
     //leaflet for d3 geom transformation.
     function projectPoint(x, y) {
-        var point = mymap.latLngToLayerPoint(new L.LatLng(y, x));
+        var point = map.latLngToLayerPoint(new L.LatLng(y, x));
         this.stream.point(point.x, point.y);
     }
 
